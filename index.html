@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بوابة نتائج الطلاب</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Cairo', sans-serif; }
+
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e3a8a, #0f172a);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container { max-width: 500px; margin: auto; width: 100%; flex-grow: 1; }
+
+        .card {
+            background: rgba(255, 255, 255, .08);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 30px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, .35);
+            animation: fade .7s ease;
+            margin-bottom: 20px;
+        }
+
+        @keyframes fade { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .logo { text-align: center; font-size: 32px; font-weight: 900; margin-bottom: 10px; }
+        .logo span { color: #10b981; }
+
+        .desc { text-align: center; line-height: 1.9; opacity: .95; margin-bottom: 25px; font-size: 14px; }
+
+        .input-box input {
+            width: 100%; padding: 16px; border: none; outline: none;
+            border-radius: 18px; background: rgba(255, 255, 255, .1);
+            color: white; font-size: 16px; text-align: center; margin-bottom: 10px;
+        }
+
+        .search-btn, .back-btn, .print-btn {
+            width: 100%; padding: 15px; border: none; border-radius: 18px;
+            font-size: 17px; font-weight: 900; cursor: pointer; 
+            transition: all .4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            margin-top: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .search-btn::after, .back-btn::after, .print-btn::after {
+            content: ""; position: absolute; top: -50%; left: -60%; width: 20%; height: 200%;
+            background: rgba(255, 255, 255, 0.3); transform: rotate(30deg); animation: shine 4s infinite;
+        }
+
+        @keyframes shine { 0% { left: -60%; } 20% { left: 120%; } 100% { left: 120%; } }
+
+        .search-btn { background: linear-gradient(135deg, #10b981, #34d399); color: white; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); }
+        .search-btn:hover { transform: scale(1.03); box-shadow: 0 8px 25px rgba(16, 185, 129, 0.6); }
+
+        .back-btn { background: #334155; color: white; box-shadow: 0 4px 15px rgba(51, 65, 85, 0.3); }
+        .back-btn:hover { transform: scale(1.03); background: #475569; box-shadow: 0 8px 25px rgba(51, 65, 85, 0.5); }
+
+        .print-btn { background: linear-gradient(135deg, #facc15, #f59e0b); color: #111827; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
+        .print-btn:hover { transform: scale(1.03); box-shadow: 0 8px 25px rgba(245, 158, 11, 0.6); }
+
+        .loader { display: none; margin-top: 25px; text-align: center; }
+        .hourglass {
+            width: 60px; height: 60px; border: 3px solid rgba(255,255,255,0.2);
+            border-radius: 50%; margin: auto; display: flex; align-items: center; justify-content: center;
+            font-size: 30px; animation: spin 1.5s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .result-page { display: none; }
+        .success { text-align: center; font-size: 22px; font-weight: 900; margin-bottom: 12px; line-height: 1.4; }
+        
+        .circle {
+            width: 130px; height: 130px; margin: 15px auto;
+            border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; position: relative;
+        }
+        .circle::before { content: ""; position: absolute; width: 95px; height: 95px; border-radius: 50%; background: #14254f; z-index: 1; }
+        .circle span { position: relative; z-index: 2; font-size: 24px; font-weight: 900; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; color: white; }
+        td { padding: 10px; border-bottom: 1px solid rgba(255, 255, 255, .1); font-size: 14px; }
+
+        .subject {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; border-radius: 14px; margin-bottom: 8px;
+            background: rgba(255, 255, 255, .05); border: 1px solid transparent;
+        }
+        .subject.fail-item { border: 1px solid rgba(239, 68, 68, 0.4); }
+        .fail-text { color: #ff5e5e !important; }
+        .marks-info { font-size: 11px; display: flex; gap: 8px; margin-top: 2px; }
+        .limit.down { color: #ff5e5e; font-weight: bold; }
+        .limit.up { color: #2de09a; font-weight: bold; }
+
+        footer { text-align: center; padding: 20px; font-size: 12px; opacity: 0.7; }
+
+        #official-receipt { display: none; color: black; padding: 20px; background: white; width: 100%; }
+        @media print {
+            @page { size: portrait; margin: 10mm; }
+            body { background: white !important; }
+            .no-print { display: none !important; }
+            #official-receipt { display: block !important; position: absolute; top: 0; left: 0; visibility: visible; width: 100%; }
+        }
+        .header-print { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+        .status-badge-print { display: inline-block; padding: 5px 25px; border: 2px solid #000; border-radius: 5px; font-weight: 900; font-size: 18px; }
+        .print-table { width: 100%; border: 1.5px solid #000; margin-top: 15px; border-collapse: collapse; }
+        .print-table td { border: 1px solid #000; color: black; padding: 8px; font-size: 14px; }
+        .print-table .label { background: #f2f2f2; font-weight: bold; width: 30%; }
+        .subjects-print { width: 100%; border: 1.5px solid #000; border-collapse: collapse; margin-top: 15px; }
+        .subjects-print th, .subjects-print td { border: 1px solid #000; padding: 7px; text-align: center; font-size: 13px; color: #000; }
+        .subjects-print th { background: #f2f2f2; font-weight: bold; }
+        .qr-section { text-align: center; margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px; }
+        .qr-section img { width: 100px; height: 100px; }
+        .copy-print { margin-top: 15px; font-size: 10px; font-weight: bold; text-align: center; border-top: 1px dashed #000; padding-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container no-print">
+    <div class="card" id="loginPage">
+        <div class="logo">وزارة <span>التربية</span></div>
+        <div class="desc">أدخل بيانات الطالب للاستعلام عن النتيجة</div>
+        <div class="input-box">
+            <input type="text" id="searchInput" placeholder="رقم الاكتتاب أو اسم الطالب الثلاثي">
+        </div>
+        <button class="search-btn" onclick="searchStudent()">عرض النتيجة</button>
+        <div class="loader" id="loader">
+            <div class="hourglass">⏳</div>
+            <p style="margin-top:15px; font-weight: 700;">جاري استخراج نتيجتك...</p>
+        </div>
+    </div>
+
+    <div class="card result-page" id="resultPage">
+        <div class="success" id="status"></div>
+        <div class="circle" id="circle"><span id="percentText">0%</span></div>
+        <table>
+            <tr><td>الاسم:</td><td id="studentName"></td></tr>
+            <tr><td>اسم الأم:</td><td id="motherNameDisp"></td></tr>
+            <tr><td>المحافظة:</td><td id="cityDisp"></td></tr>
+            <tr><td>رقم الاكتتاب:</td><td id="seatNumber"></td></tr>
+            <tr><td>المعدل العام:</td><td id="average"></td></tr>
+        </table>
+        <div class="subjects" id="subjectsBox" style="margin-top: 15px;"></div>
+        <button class="print-btn" onclick="window.print()">طباعة النتيجة الرسمية</button>
+        <button class="back-btn" onclick="goBack()">بحث جديد</button>
+    </div>
+</div>
+
+<footer class="no-print">
+    <p>جميع الحقوق محفوظة لدى وزارة التربية والتعليم © 2026</p>
+</footer>
+
+<div id="official-receipt">
+    <div class="header-print">
+        <h2 style="font-size: 20px;">الجمهورية العربية السورية</h2>
+        <p>وزارة التربية والتعليم</p>
+        <p style="font-weight: bold; text-decoration: underline;">وثيقة درجات الشهادة الثانوية العامة</p>
+    </div>
+    <div style="text-align: center; margin-bottom: 15px;">
+        <h1 id="p-total-percent">0%</h1>
+        <div class="status-badge-print" id="p-status">---</div>
+    </div>
+    <table class="print-table">
+        <tr><td class="label">الاسم الثلاثي:</td><td id="p-name"></td></tr>
+        <tr><td class="label">اسم الأم:</td><td id="p-mother"></td></tr>
+        <tr><td class="label">المحافظة:</td><td id="p-city"></td></tr>
+        <tr><td class="label">رقم الاكتتاب:</td><td id="p-seat"></td></tr>
+    </table>
+    <table class="subjects-print">
+        <thead>
+            <tr><th>المادة الدراسية</th><th>الدرجة المستحقة</th><th>الحالة</th></tr>
+        </thead>
+        <tbody id="p-subjects-list"></tbody>
+    </table>
+    <div class="qr-section">
+        <p style="font-size: 12px; font-weight: bold;">رمز التحقق الرقمي (QR Code)</p>
+        <img id="qrCode" src="" alt="QR">
+    </div>
+    <div class="copy-print">جميع الحقوق محفوظة لدى وزارة التربية والتعليم</div>
+</div>
+
+<script>
+    let studentsData = [];
+    fetch("csvjson (5).json").then(res => res.json()).then(data => { studentsData = data; }).catch(() => console.error("الملف غير موجود"));
+
+    function searchStudent() {
+        const val = document.getElementById("searchInput").value.trim();
+        if (!val) return;
+        document.getElementById("loader").style.display = "block";
+        setTimeout(() => {
+            const student = studentsData.find(s => String(s["رقم الاكتتاب"]) === val || s["اسم الطالب"] === val);
+            document.getElementById("loader").style.display = "none";
+            if (!student) return alert("عذراً، لم يتم العثور على النتيجة.");
+            showResult(student);
+        }, 800);
+    }
+
+    function launchConfetti() {
+        var duration = 3000; var end = Date.now() + duration;
+        (function frame() {
+            confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#10b981', '#ffffff', '#34d399'] });
+            confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#10b981', '#ffffff', '#34d399'] });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+    }
+
+    function showResult(student) {
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("resultPage").style.display = "block";
+        const infoFields = ["اسم الطالب", "اسم الأم", "المحافظة", "رقم الاكتتاب", "الرقم الوطني"];
+        let total = 0, count = 0, failedMarks = [];
+        const box = document.getElementById("subjectsBox");
+        const printBox = document.getElementById("p-subjects-list");
+        box.innerHTML = ""; printBox.innerHTML = "";
+
+        for (let key in student) {
+            if (!infoFields.includes(key) && !isNaN(Number(student[key]))) {
+                let mark = Number(student[key]);
+                total += mark; count++;
+                let isFail = mark < 60;
+                if (isFail) failedMarks.push(mark);
+                box.innerHTML += `<div class="subject ${isFail ? 'fail-item' : ''}"><span>${key}</span><div style="text-align:left"><div style="font-weight:900; font-size:17px" class="${isFail ? 'fail-text' : ''}">${mark}</div><div class="marks-info"><span class="limit down">↓ 60</span><span class="limit up">↑ 100</span></div></div></div>`;
+                printBox.innerHTML += `<tr><td>${key}</td><td>${mark}</td><td>${mark >= 60 ? 'ناجح' : 'راسب'}</td></tr>`;
+            }
+        }
+
+        const avg = count > 0 ? (total / count).toFixed(2) : 0;
+        let isPass = (failedMarks.length <= 1) || (failedMarks.length === 2 && failedMarks.every(m => m >= 25));
+        
+        // نظام التقدير
+        let estimation = "";
+        if (isPass) {
+            if (avg >= 90) estimation = "ناجح - الشرف";
+            else if (avg >= 80) estimation = "ناجح - ممتاز";
+            else if (avg >= 70) estimation = "ناجح - جيد جداً";
+            else if (avg >= 60) estimation = "ناجح - جيد";
+            else estimation = "ناجح";
+        } else {
+            estimation = "راسب";
+        }
+
+        if(isPass) launchConfetti();
+
+        document.getElementById("studentName").innerText = student["اسم الطالب"];
+        document.getElementById("motherNameDisp").innerText = student["اسم الأم"] || "غير متوفر";
+        document.getElementById("cityDisp").innerText = student["المحافظة"] || "غير متوفر";
+        document.getElementById("seatNumber").innerText = student["رقم الاكتتاب"];
+        document.getElementById("average").innerText = avg + "%";
+        document.getElementById("percentText").innerText = avg + "%";
+        document.getElementById("p-name").innerText = student["اسم الطالب"];
+        document.getElementById("p-mother").innerText = student["اسم الأم"] || "---";
+        document.getElementById("p-city").innerText = student["المحافظة"] || "---";
+        document.getElementById("p-seat").innerText = student["رقم الاكتتاب"];
+        document.getElementById("p-total-percent").innerText = avg + "%";
+        document.getElementById("p-status").innerText = estimation;
+
+        const statusDiv = document.getElementById("status");
+        if(isPass) {
+            statusDiv.innerHTML = `مبارك النجاح ، نحو مستقبل مشرق<br><span style="font-size:18px; opacity:0.9">التقدير: ${estimation}</span>`;
+            statusDiv.style.color = "#10b981";
+        } else {
+            statusDiv.innerHTML = `لا تيأس لديك فرصة أخرى<br><span style="font-size:18px; opacity:0.9">النتيجة: ${estimation}</span>`;
+            statusDiv.style.color = "#ef4444";
+        }
+        
+        const color = isPass ? "#10b981" : "#ef4444";
+        document.getElementById("circle").style.background = `conic-gradient(${color} ${avg}%, rgba(255,255,255,.1) 0%)`;
+        document.getElementById("qrCode").src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent("Student: " + student["اسم الطالب"] + " | Result: " + estimation + " | Avg: " + avg + "%")}`;
+    }
+
+    function goBack() { document.getElementById("loginPage").style.display = "block"; document.getElementById("resultPage").style.display = "none"; }
+</script>
+
+</body>
+</html>
